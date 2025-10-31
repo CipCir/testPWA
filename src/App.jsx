@@ -66,57 +66,34 @@ export default function App() {
       const reg = await navigator.serviceWorker.getRegistration()
   addLog('log', 'navigator.serviceWorker.getRegistration() returned:', reg)
 
-      const title = 'Hello from PWA'
+      const title = '🍺 Happy Halloween! in title tag 🦇🕸️'
       const options = {
-        body: 'This notification was triggered by a button press.',
-        tag: 'simple-notification',
+        body: 'Happy Halloween! in body tag 🍺🎃🦇🕸️',
+        tag: 'halloween-notification',
         renotify: true,
+        icon: '/icons/halloween.png', // fallback icon
+        image: 'https://upload.wikimedia.org/wikipedia/commons/7/70/Beer_mug.png', // beer image
         data: { time: Date.now() },
         actions: [
-          { action: 'open', title: 'Open App' }
+          { action: 'open', title: 'Open App 🎃' }
         ]
       }
 
-      if (reg) {
-        // Prefer showNotification on the registration (works even when page is in background)
-        if (typeof reg.showNotification === 'function') {
-          addLog('log', 'Using ServiceWorkerRegistration.showNotification()')
-          try {
-            await reg.showNotification(title, options)
-            addLog('log', 'showNotification() promise resolved')
-          } catch (err) {
-            addLog('error', 'reg.showNotification threw:', err)
-            addLog('log', 'Attempting to postMessage to active worker as fallback')
-            if (reg.active && reg.active.postMessage) {
-              reg.active.postMessage({ type: 'show-notification', title, options })
-              addLog('log', 'Posted message to active service worker')
-            } else {
-              addLog('warn', 'No active service worker to postMessage to; falling back to Notification constructor')
-              try {
-                const n = new Notification(title, options)
-                addLog('log', 'Notification constructor returned:', n)
-              } catch (err2) {
-                addLog('error', 'Notification constructor failed:', err2)
-              }
-            }
-          }
-        } else {
-          addLog('warn', 'reg.showNotification is not a function; trying to postMessage to worker')
-          if (reg.active && reg.active.postMessage) {
-            reg.active.postMessage({ type: 'show-notification', title, options })
-            addLog('log', 'Posted message to active service worker')
-          } else {
-            addLog('warn', 'No active service worker to postMessage to; falling back to Notification constructor')
-            try {
-              const n = new Notification(title, options)
-              addLog('log', 'Notification constructor returned:', n)
-            } catch (err) {
-              addLog('error', 'Notification constructor failed:', err)
-            }
-          }
+      if (reg && reg.active && reg.active.postMessage) {
+        // Always send notification via service worker for best compatibility
+        reg.active.postMessage({ type: 'show-notification', title, options })
+        addLog('log', 'Posted message to active service worker (for notification with image)')
+      } else if (reg && typeof reg.showNotification === 'function') {
+        // Fallback: direct showNotification if postMessage not available
+        addLog('log', 'Using ServiceWorkerRegistration.showNotification() (fallback)')
+        try {
+          await reg.showNotification(title, options)
+          addLog('log', 'showNotification() promise resolved')
+        } catch (err) {
+          addLog('error', 'reg.showNotification threw:', err)
         }
       } else {
-        addLog('log', 'No service worker registration found; using Notification constructor')
+        addLog('warn', 'No active service worker to postMessage to; falling back to Notification constructor')
         try {
           const n = new Notification(title, options)
           addLog('log', 'Notification constructor returned:', n)
